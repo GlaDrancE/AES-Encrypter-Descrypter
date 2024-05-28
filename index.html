@@ -1,0 +1,140 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Encrypt/Decrypt Application</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+</head>
+
+<body style="height: 100vh;">
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+        }
+    </style>
+    <div class="container h-100">
+        <div class="row align-items-center h-100">
+            <div class="col-md-6">
+                <div>
+                    <h2 class="font-weight-bold">Encryption</h2>
+                    <div class="card-body">
+                        <form>
+                            <div class="form-group">
+                                <label for="picc-data">PICC Data:</label>
+                                <input type="text" id="picc-data" name="picc-data" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label for="enc-file-data">File Data:</label>
+                                <input type="text" id="enc-file-data" name="file-data" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label for="cmac-data">CMAC Data:</label>
+                                <input type="text" id="cmac-data" name="cmac-data" class="form-control">
+                            </div>
+                            <button type="button" onclick="handleDecryption()"
+                                class="btn btn-dark float-left">Decrypt</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="">
+                    <h2 class="text-right font-weight-bold">Decryption</h2>
+                    <div class="card-body">
+                        <form>
+                            <div class="form-group">
+                                <label for="uid-dec">UID:</label>
+                                <input type="text" id="uid-dec" name="uid-dec" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label for="picc-data-tag">PICC Data Tag:</label>
+                                <input type="text" id="picc-data-tag" name="picc-data-tag" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label for="counter-value-dec">Counter Value:</label>
+                                <input type="text" id="counter-value-dec" name="counter-value-dec" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label for="dec-file-data">File Data:</label>
+                                <input type="text" id="dec-file-data" name="file-data" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label for="cmac-dec">(Signature Verification) CMAC:</label>
+                                <input type="text" id="cmac-dec" name="cmac-dec" class="form-control">
+                            </div>
+                            <button type="button" onclick="handleEncryption()"
+                                class="btn btn-dark float-right">Encrypt</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+
+        var uidInput = document.getElementById("uid-dec");
+        var piccDataTagInput = document.getElementById("picc-data-tag");
+        var counterValueInput = document.getElementById("counter-value-dec");
+        var fileDataInput = document.getElementById("dec-file-data");
+        var cmacInput = document.getElementById("cmac-dec");
+        async function handleDecryption() {
+            var piccData = document.getElementById("picc-data").value.trim();
+            var fileData = document.getElementById("enc-file-data").value.trim();
+            var cmacData = document.getElementById("cmac-data").value.trim();
+
+            // Set empty string if not given by the user
+            if (!piccData) {
+                piccData = "";
+            }
+            if (!fileData) {
+                fileData = "";
+            }
+            if (!cmacData) {
+                cmacData = "";
+            }
+            let headersList = {
+                "Content-Type": "application/json"
+            }
+
+            let bodyContent = JSON.stringify({
+                "enc_picc_data": piccData,
+                "cmac": cmacData,
+                "enc_file_data": fileData
+            });
+
+            let response = await fetch("/decrypt", {
+                method: "POST",
+                body: bodyContent,
+                headers: headersList
+            });
+
+            let data = await response.json();
+            if (data.error) {
+                uidInput.value = ""
+                piccDataTagInput.value = ""
+                counterValueInput.value = ""
+                fileDataInput.value = ""
+                cmacInput.value = "Not Verified";
+                cmacInput.classList.add("text-danger")
+                cmacInput.classList.remove("text-success")
+                return;
+            }
+            cmacInput.value = "Verified";
+            cmacInput.classList.add("text-success")
+            cmacInput.classList.remove("text-danger")
+            uidInput.value = data.uid;
+            piccDataTagInput.value = data.picc_data_tag;
+            counterValueInput.value = data.read_ctr;
+            fileDataInput.value = data.file_data === null ? "" : data.file_data;
+
+        }
+        async function handleEncryption() {
+
+        }
+    </script>
+</body>
+
+</html>
